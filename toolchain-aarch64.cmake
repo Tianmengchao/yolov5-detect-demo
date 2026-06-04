@@ -1,0 +1,11 @@
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
+
+set(TOOLCHAIN_PATH $ENV{HOME}/workspace/rockchip/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu)
+
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PATH}/bin/aarch64-none-linux-gnu-gcc)
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PATH}/bin/aarch64-none-linux-gnu-g++)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
