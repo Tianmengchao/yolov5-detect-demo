@@ -10,6 +10,3 @@ out.png
 
 compile_commands.json
 .cache/
-
-# OpenCV: 交叉编译产物，通过 scripts/build-opencv-aarch64.sh 生成
-3rdparty/opencv/
