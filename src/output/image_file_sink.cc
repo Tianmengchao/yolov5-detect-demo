@@ -1,5 +1,5 @@
 #include "output/image_file_sink.h"
-#include <cstdio>
+#include <spdlog/spdlog.h>
 #include <cstring>
 #include <vector>
 
@@ -21,7 +21,6 @@ bool ImageFileSink::open(int width, int height, int /*fps*/) {
 }
 
 bool ImageFileSink::write(const Frame& frame, const DetectionResult& result) {
-    // 复制帧数据用于绘制（不修改原始帧）
     std::vector<uint8_t> draw_buf(frame.data, frame.data + frame.dataSize());
 
     image_buffer_t img;
@@ -44,15 +43,15 @@ bool ImageFileSink::write(const Frame& frame, const DetectionResult& result) {
         draw_text(&img, text, x1, y1 - 20, COLOR_RED, 10);
     }
 
-    // write_image 对 PNG/JPG 返回非零表示成功（stb_image_write 约定）
+    // stbi_write_png 返回非零表示成功
     int ret = write_image(output_path_.c_str(), &img);
     if (ret == 0) {
-        printf("ImageFileSink: failed to write image: %s\n", output_path_.c_str());
+        spdlog::error("ImageFileSink: failed to write image: {}", output_path_);
         return false;
     }
 
-    printf("ImageFileSink: saved to %s (%d detections)\n",
-           output_path_.c_str(), static_cast<int>(result.detections.size()));
+    spdlog::info("ImageFileSink: saved to {} ({} detections)",
+                 output_path_, result.detections.size());
     return true;
 }
 

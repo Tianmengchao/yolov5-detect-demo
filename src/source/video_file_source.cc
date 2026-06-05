@@ -1,5 +1,5 @@
 #include "source/video_file_source.h"
-#include <cstdio>
+#include <spdlog/spdlog.h>
 
 VideoFileSource::VideoFileSource(const std::string& path) : path_(path) {}
 
@@ -10,7 +10,7 @@ VideoFileSource::~VideoFileSource() {
 bool VideoFileSource::open() {
     cap_.open(path_);
     if (!cap_.isOpened()) {
-        printf("VideoFileSource: cannot open video: %s\n", path_.c_str());
+        spdlog::error("VideoFileSource: cannot open video: {}", path_);
         return false;
     }
 
@@ -21,8 +21,8 @@ bool VideoFileSource::open() {
 
     if (fps_ <= 0) fps_ = 25;
 
-    printf("VideoFileSource: opened %s (%dx%d, %d fps, %d frames)\n",
-           path_.c_str(), width_, height_, fps_, total_frames_);
+    spdlog::info("VideoFileSource: opened {} ({}x{}, {} fps, {} frames)",
+                 path_, width_, height_, fps_, total_frames_);
     return true;
 }
 

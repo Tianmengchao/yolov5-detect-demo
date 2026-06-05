@@ -1,5 +1,6 @@
 #include "detector/yolov5_detector.h"
 
+#include <spdlog/spdlog.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -28,7 +29,7 @@ bool YoloV5Detector::init(const std::string& model_path) {
 
     FILE* fp = fopen(model_path.c_str(), "rb");
     if (!fp) {
-        printf("YoloV5Detector: cannot open model file: %s\n", model_path.c_str());
+        spdlog::error("YoloV5Detector: cannot open model file: {}", model_path);
         return false;
     }
     fseek(fp, 0, SEEK_END);
@@ -40,13 +41,13 @@ bool YoloV5Detector::init(const std::string& model_path) {
 
     int ret = rknn_init(&ctx_, model_data.data(), model_len, 0, nullptr);
     if (ret < 0) {
-        printf("YoloV5Detector: rknn_init failed, ret=%d\n", ret);
+        spdlog::error("YoloV5Detector: rknn_init failed, ret={}", ret);
         return false;
     }
 
     ret = rknn_query(ctx_, RKNN_QUERY_IN_OUT_NUM, &io_num_, sizeof(io_num_));
     if (ret != RKNN_SUCC) {
-        printf("YoloV5Detector: rknn_query IO num failed\n");
+        spdlog::error("YoloV5Detector: rknn_query IO num failed");
         return false;
     }
 
@@ -77,8 +78,8 @@ bool YoloV5Detector::init(const std::string& model_path) {
     is_quant_ = (output_attrs_[0].qnt_type == RKNN_TENSOR_QNT_AFFINE_ASYMMETRIC &&
                  output_attrs_[0].type != RKNN_TENSOR_FLOAT16);
 
-    printf("YoloV5Detector: model loaded (%dx%dx%d, quant=%d)\n",
-           model_width_, model_height_, model_channel_, is_quant_);
+    spdlog::info("YoloV5Detector: model loaded ({}x{}x{}, quant={})",
+                 model_width_, model_height_, model_channel_, is_quant_);
 
     initLabels("./model/coco_80_labels_list.txt");
 
@@ -89,7 +90,7 @@ bool YoloV5Detector::init(const std::string& model_path) {
 bool YoloV5Detector::initLabels(const std::string& label_path) {
     std::ifstream ifs(label_path);
     if (!ifs.is_open()) {
-        printf("YoloV5Detector: cannot open label file: %s\n", label_path.c_str());
+        spdlog::warn("YoloV5Detector: cannot open label file: {}", label_path);
         return false;
     }
     std::string line;
@@ -97,6 +98,7 @@ bool YoloV5Detector::initLabels(const std::string& label_path) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
         labels_.push_back(line);
     }
+    spdlog::debug("YoloV5Detector: loaded {} labels", labels_.size());
     return true;
 }
 
@@ -153,13 +155,13 @@ bool YoloV5Detector::detect(const Frame& frame, DetectionResult& result) {
 
     int ret = rknn_inputs_set(ctx_, io_num_.n_input, inputs);
     if (ret < 0) {
-        printf("YoloV5Detector: rknn_inputs_set failed, ret=%d\n", ret);
+        spdlog::error("YoloV5Detector: rknn_inputs_set failed, ret={}", ret);
         return false;
     }
 
     ret = rknn_run(ctx_, nullptr);
     if (ret < 0) {
-        printf("YoloV5Detector: rknn_run failed, ret=%d\n", ret);
+        spdlog::error("YoloV5Detector: rknn_run failed, ret={}", ret);
         return false;
     }
 
@@ -170,13 +172,15 @@ bool YoloV5Detector::detect(const Frame& frame, DetectionResult& result) {
     }
     ret = rknn_outputs_get(ctx_, io_num_.n_output, outputs.data(), nullptr);
     if (ret < 0) {
-        printf("YoloV5Detector: rknn_outputs_get failed, ret=%d\n", ret);
+        spdlog::error("YoloV5Detector: rknn_outputs_get failed, ret={}", ret);
         return false;
     }
 
     postprocess(outputs.data(), lb, result);
 
     rknn_outputs_release(ctx_, io_num_.n_output, outputs.data());
+
+    spdlog::debug("YoloV5Detector: detected {} objects", result.detections.size());
     return true;
 }
 
@@ -210,7 +214,6 @@ void YoloV5Detector::postprocess(rknn_output* outputs, const LetterBox& lb, Dete
     std::vector<int> index_array(valid_count);
     for (int i = 0; i < valid_count; i++) index_array[i] = i;
 
-    // 按置信度降序排序
     std::sort(index_array.begin(), index_array.end(),
               [&obj_probs](int a, int b) { return obj_probs[a] > obj_probs[b]; });
 
@@ -389,6 +392,7 @@ void YoloV5Detector::release() {
     if (initialized_ && ctx_ != 0) {
         rknn_destroy(ctx_);
         ctx_ = 0;
+        spdlog::debug("YoloV5Detector: model released");
     }
     initialized_ = false;
 }

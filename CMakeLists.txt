@@ -42,6 +42,11 @@ set(LIBJPEG ${JPEG_PATH}/Linux/${TARGET_LIB_ARCH}/libturbojpeg.a)
 set(LIBJPEG_INCLUDES ${JPEG_PATH}/include)
 
 # ============================================================
+# spdlog (header-only)
+# ============================================================
+set(SPDLOG_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/spdlog/include)
+
+# ============================================================
 # OpenCV (可选，用于视频处理)
 # ============================================================
 option(ENABLE_VIDEO "Enable video processing (requires OpenCV)" OFF)
@@ -102,6 +107,7 @@ target_include_directories(detect_pipeline PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/utils
     ${LIBRKNNRT_INCLUDES}
+    ${SPDLOG_INCLUDES}
 )
 
 target_link_libraries(detect_pipeline

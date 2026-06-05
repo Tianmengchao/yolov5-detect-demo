@@ -1,5 +1,5 @@
 #include "source/image_source.h"
-#include <cstdio>
+#include <spdlog/spdlog.h>
 #include <cstdlib>
 #include <cstring>
 
@@ -19,7 +19,7 @@ bool ImageSource::open() {
 
     int ret = read_image(path_.c_str(), &img);
     if (ret != 0) {
-        printf("ImageSource: failed to read image: %s\n", path_.c_str());
+        spdlog::error("ImageSource: failed to read image: {}", path_);
         return false;
     }
 
@@ -32,6 +32,8 @@ bool ImageSource::open() {
 
     free(img.virt_addr);
     consumed_ = false;
+
+    spdlog::info("ImageSource: loaded {} ({}x{})", path_, width_, height_);
     return true;
 }
 

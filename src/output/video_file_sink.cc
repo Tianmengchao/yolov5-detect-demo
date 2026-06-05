@@ -1,6 +1,6 @@
 #include "output/video_file_sink.h"
+#include <spdlog/spdlog.h>
 #include <opencv2/imgproc.hpp>
-#include <cstdio>
 
 VideoFileSink::VideoFileSink(const std::string& output_path) : output_path_(output_path) {}
 
@@ -13,12 +13,12 @@ bool VideoFileSink::open(int width, int height, int fps) {
     writer_.open(output_path_, fourcc, fps, cv::Size(width, height));
 
     if (!writer_.isOpened()) {
-        printf("VideoFileSink: cannot open writer: %s\n", output_path_.c_str());
+        spdlog::error("VideoFileSink: cannot open writer: {}", output_path_);
         return false;
     }
 
-    printf("VideoFileSink: writing to %s (%dx%d, %d fps)\n",
-           output_path_.c_str(), width, height, fps);
+    spdlog::info("VideoFileSink: writing to {} ({}x{}, {} fps)",
+                 output_path_, width, height, fps);
     return true;
 }
 
@@ -53,6 +53,6 @@ void VideoFileSink::drawDetections(cv::Mat& bgr_frame, const DetectionResult& re
 void VideoFileSink::release() {
     if (writer_.isOpened()) {
         writer_.release();
-        printf("VideoFileSink: file saved to %s\n", output_path_.c_str());
+        spdlog::info("VideoFileSink: file saved to {}", output_path_);
     }
 }

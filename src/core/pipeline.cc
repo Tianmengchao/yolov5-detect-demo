@@ -1,6 +1,6 @@
 #include "core/pipeline.h"
+#include <spdlog/spdlog.h>
 #include <chrono>
-#include <cstdio>
 
 void Pipeline::setSource(std::unique_ptr<FrameSource> source) {
     source_ = std::move(source);
@@ -16,19 +16,19 @@ void Pipeline::addSink(std::unique_ptr<OutputSink> sink) {
 
 int Pipeline::run() {
     if (!source_ || !detector_) {
-        printf("Pipeline: source or detector not set\n");
+        spdlog::error("Pipeline: source or detector not set");
         return -1;
     }
 
     if (!source_->open()) {
-        printf("Pipeline: failed to open source\n");
+        spdlog::error("Pipeline: failed to open source");
         return -1;
     }
 
     int src_fps = source_->fps() > 0 ? source_->fps() : 25;
     for (auto& sink : sinks_) {
         if (!sink->open(source_->width(), source_->height(), src_fps)) {
-            printf("Pipeline: failed to open sink\n");
+            spdlog::error("Pipeline: failed to open sink");
             return -1;
         }
     }
@@ -74,11 +74,11 @@ void Pipeline::printStats(int frame_id, int total_frames) const {
     double fps = 1000.0 / avg_ms;
 
     if (total_frames > 0) {
-        printf("[Frame %d/%d] avg: %.1fms, FPS: %.1f\n",
-               frame_id, total_frames, avg_ms, fps);
+        spdlog::info("[Frame {}/{}] avg: {:.1f}ms, FPS: {:.1f}",
+                     frame_id, total_frames, avg_ms, fps);
     } else {
-        printf("[Frame %d] avg: %.1fms, FPS: %.1f\n",
-               frame_id, avg_ms, fps);
+        spdlog::info("[Frame {}] avg: {:.1f}ms, FPS: {:.1f}",
+                     frame_id, avg_ms, fps);
     }
 }
 
@@ -87,9 +87,9 @@ void Pipeline::printFinalStats() const {
 
     double avg_ms = total_inference_ms_ / total_frames_;
     double fps = 1000.0 / avg_ms;
-    printf("\n=== Pipeline Complete ===\n");
-    printf("Total frames: %d\n", total_frames_);
-    printf("Avg inference: %.1fms\n", avg_ms);
-    printf("Avg FPS: %.1f\n", fps);
-    printf("========================\n");
+    spdlog::info("=== Pipeline Complete ===");
+    spdlog::info("Total frames: {}", total_frames_);
+    spdlog::info("Avg inference: {:.1f}ms", avg_ms);
+    spdlog::info("Avg FPS: {:.1f}", fps);
+    spdlog::info("========================");
 }
