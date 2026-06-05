@@ -2,3 +2,8 @@ build/
 out.png
 *.o
 *.d
+
+# spdlog: 只保留 include/ 和 LICENSE，忽略其余
+3rdparty/spdlog/*
+!3rdparty/spdlog/include/
+!3rdparty/spdlog/LICENSE
