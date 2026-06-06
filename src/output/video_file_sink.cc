@@ -9,7 +9,12 @@ VideoFileSink::~VideoFileSink() {
 }
 
 bool VideoFileSink::open(int width, int height, int fps) {
-    int fourcc = cv::VideoWriter::fourcc('m', 'p', '4', 'v');
+    int fourcc;
+    if (output_path_.size() >= 4 && output_path_.substr(output_path_.size() - 4) == ".avi") {
+        fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
+    } else {
+        fourcc = cv::VideoWriter::fourcc('a', 'v', 'c', '1');
+    }
     writer_.open(output_path_, fourcc, fps, cv::Size(width, height));
 
     if (!writer_.isOpened()) {

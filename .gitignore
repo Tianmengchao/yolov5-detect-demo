@@ -8,5 +8,16 @@ out.png
 !3rdparty/spdlog/include/
 !3rdparty/spdlog/LICENSE
 
+# ffmpeg: 只保留 include/ 和 lib/（不含 pkgconfig），忽略 share/
+3rdparty/ffmpeg/share/
+3rdparty/ffmpeg/lib/pkgconfig/
+
+# x264: 只保留 include/ 和 lib/（不含 pkgconfig）
+3rdparty/x264/lib/pkgconfig/
+
+# opencv: 忽略运行时不需要的部分
+3rdparty/opencv/bin/
+3rdparty/opencv/share/
+
 compile_commands.json
 .cache/

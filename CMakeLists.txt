@@ -58,6 +58,23 @@ if(ENABLE_VIDEO)
         set(OpenCV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/opencv/lib/cmake/opencv4)
     endif()
     find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio)
+
+    # FFmpeg + x264 静态库（OpenCV videoio 后端依赖，顺序关键：依赖者在前）
+    set(FFMPEG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ffmpeg)
+    set(X264_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/x264)
+    if(EXISTS ${FFMPEG_PATH}/lib)
+        set(OPENCV_3RDPARTY_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/opencv/lib/opencv4/3rdparty)
+        set(FFMPEG_EXTRA_LIBS
+            ${FFMPEG_PATH}/lib/libavformat.a
+            ${FFMPEG_PATH}/lib/libavcodec.a
+            ${X264_PATH}/lib/libx264.a
+            ${FFMPEG_PATH}/lib/libswresample.a
+            ${FFMPEG_PATH}/lib/libswscale.a
+            ${FFMPEG_PATH}/lib/libavutil.a
+            ${OPENCV_3RDPARTY_PATH}/libzlib.a
+            m
+        )
+    endif()
 endif()
 
 # ============================================================
@@ -121,7 +138,7 @@ target_link_libraries(detect_pipeline
 
 if(ENABLE_VIDEO)
     target_include_directories(detect_pipeline PUBLIC ${OpenCV_INCLUDE_DIRS})
-    target_link_libraries(detect_pipeline ${OpenCV_LIBS})
+    target_link_libraries(detect_pipeline ${OpenCV_LIBS} ${FFMPEG_EXTRA_LIBS})
 endif()
 
 # ============================================================
