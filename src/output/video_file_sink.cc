@@ -48,7 +48,7 @@ void VideoFileSink::drawDetections(cv::Mat& bgr_frame, const DetectionResult& re
                       color, 2);
 
         char text[64];
-        snprintf(text, sizeof(text), "%d %.0f%%", det.class_id, det.confidence * 100);
+        snprintf(text, sizeof(text), "%s %.0f%%", det.label.c_str(), det.confidence * 100);
         cv::putText(bgr_frame, text,
                     cv::Point(det.box.left, det.box.top - 5),
                     cv::FONT_HERSHEY_SIMPLEX, 0.6, color, 2);

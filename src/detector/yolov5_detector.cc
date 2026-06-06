@@ -241,6 +241,11 @@ void YoloV5Detector::postprocess(rknn_output* outputs, const LetterBox& lb, Dete
                    static_cast<int>(x2), static_cast<int>(y2)};
         det.confidence = obj_probs[n];
         det.class_id = class_ids[n];
+        if (det.class_id >= 0 && det.class_id < static_cast<int>(labels_.size())) {
+            det.label = labels_[det.class_id];
+        } else {
+            det.label = std::to_string(det.class_id);
+        }
         result.detections.push_back(det);
     }
 }

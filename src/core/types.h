@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 #include <cstdint>
 
 enum class PixelFormat {
@@ -28,6 +29,7 @@ struct Detection {
     BBox box;
     float confidence;
     int class_id;
+    std::string label;
 };
 
 struct DetectionResult {

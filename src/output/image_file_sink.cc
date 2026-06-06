@@ -39,7 +39,7 @@ bool ImageFileSink::write(const Frame& frame, const DetectionResult& result) {
         draw_rectangle(&img, x1, y1, w, h, COLOR_BLUE, 3);
 
         char text[64];
-        snprintf(text, sizeof(text), "%d %.0f%%", det.class_id, det.confidence * 100);
+        snprintf(text, sizeof(text), "%s %.0f%%", det.label.c_str(), det.confidence * 100);
         draw_text(&img, text, x1, y1 - 20, COLOR_RED, 10);
     }
 
