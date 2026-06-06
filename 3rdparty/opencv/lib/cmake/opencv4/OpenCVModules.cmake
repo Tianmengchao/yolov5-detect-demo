@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget zlib libjpeg-turbo libtiff libwebp libopenjp2 libpng tegra_hal ittnotify opencv_core opencv_imgproc opencv_imgcodecs ocv.3rdparty.obsensor opencv_videoio)
+foreach(_expectedTarget zlib libjpeg-turbo libtiff libwebp libopenjp2 libpng tegra_hal ittnotify opencv_core opencv_imgproc opencv_imgcodecs ocv.3rdparty.ffmpeg ocv.3rdparty.obsensor opencv_videoio)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -112,6 +112,14 @@ set_target_properties(opencv_imgcodecs PROPERTIES
   INTERFACE_LINK_LIBRARIES "opencv_core;opencv_imgproc;opencv_core;opencv_imgproc;\$<LINK_ONLY:dl>;\$<LINK_ONLY:m>;\$<LINK_ONLY:pthread>;\$<LINK_ONLY:rt>;\$<LINK_ONLY:tegra_hal>;\$<LINK_ONLY:libjpeg-turbo>;\$<LINK_ONLY:libwebp>;\$<LINK_ONLY:libpng>;\$<LINK_ONLY:libtiff>;\$<LINK_ONLY:libopenjp2>;\$<LINK_ONLY:zlib>"
 )
 
+# Create imported target ocv.3rdparty.ffmpeg
+add_library(ocv.3rdparty.ffmpeg INTERFACE IMPORTED)
+
+set_target_properties(ocv.3rdparty.ffmpeg PROPERTIES
+  INTERFACE_COMPILE_DEFINITIONS "HAVE_FFMPEG"
+  INTERFACE_LINK_LIBRARIES "/home/tmc/workspace/rockchip/yolov5-detect-demo/3rdparty/ffmpeg/lib/libavformat.a;/home/tmc/workspace/rockchip/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/aarch64-none-linux-gnu/libc/usr/lib64/libm.so;-latomic;/home/tmc/workspace/rockchip/yolov5-detect-demo/3rdparty/ffmpeg/lib/libavcodec.a;/home/tmc/workspace/rockchip/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/aarch64-none-linux-gnu/libc/usr/lib64/libm.so;-latomic;/home/tmc/workspace/rockchip/yolov5-detect-demo/3rdparty/x264/lib/libx264.a;/home/tmc/workspace/rockchip/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/aarch64-none-linux-gnu/libc/usr/lib64/libpthread.a;/home/tmc/workspace/rockchip/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/aarch64-none-linux-gnu/libc/usr/lib64/libm.so;/home/tmc/workspace/rockchip/yolov5-detect-demo/3rdparty/ffmpeg/lib/libswscale.a;/home/tmc/workspace/rockchip/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/aarch64-none-linux-gnu/libc/usr/lib64/libm.so;-latomic;/home/tmc/workspace/rockchip/yolov5-detect-demo/3rdparty/ffmpeg/lib/libavutil.a;/home/tmc/workspace/rockchip/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/aarch64-none-linux-gnu/libc/usr/lib64/libm.so;-latomic"
+)
+
 # Create imported target ocv.3rdparty.obsensor
 add_library(ocv.3rdparty.obsensor INTERFACE IMPORTED)
 
@@ -123,7 +131,7 @@ set_target_properties(ocv.3rdparty.obsensor PROPERTIES
 add_library(opencv_videoio STATIC IMPORTED)
 
 set_target_properties(opencv_videoio PROPERTIES
-  INTERFACE_LINK_LIBRARIES "opencv_core;opencv_imgproc;opencv_imgcodecs;opencv_core;opencv_imgproc;opencv_imgcodecs;\$<LINK_ONLY:dl>;\$<LINK_ONLY:m>;\$<LINK_ONLY:pthread>;\$<LINK_ONLY:rt>;\$<LINK_ONLY:tegra_hal>;\$<LINK_ONLY:ocv.3rdparty.obsensor>"
+  INTERFACE_LINK_LIBRARIES "opencv_core;opencv_imgproc;opencv_imgcodecs;opencv_core;opencv_imgproc;opencv_imgcodecs;\$<LINK_ONLY:dl>;\$<LINK_ONLY:m>;\$<LINK_ONLY:pthread>;\$<LINK_ONLY:rt>;\$<LINK_ONLY:tegra_hal>;\$<LINK_ONLY:ocv.3rdparty.ffmpeg>;\$<LINK_ONLY:ocv.3rdparty.obsensor>"
 )
 
 if(CMAKE_VERSION VERSION_LESS 3.0.0)
