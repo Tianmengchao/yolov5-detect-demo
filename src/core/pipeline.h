@@ -13,6 +13,7 @@ public:
     void addSink(std::unique_ptr<OutputSink> sink);
 
     int run();
+    void stop();
 
 private:
     void printStats(int frame_id, int total_frames) const;
@@ -24,4 +25,5 @@ private:
 
     int total_frames_ = 0;
     double total_inference_ms_ = 0.0;
+    bool stop_requested_ = false;
 };

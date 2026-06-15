@@ -14,6 +14,10 @@ void Pipeline::addSink(std::unique_ptr<OutputSink> sink) {
     sinks_.push_back(std::move(sink));
 }
 
+void Pipeline::stop() {
+    stop_requested_ = true;
+}
+
 int Pipeline::run() {
     if (!source_ || !detector_) {
         spdlog::error("Pipeline: source or detector not set");
@@ -37,7 +41,7 @@ int Pipeline::run() {
     DetectionResult result;
     int total_expected = source_->totalFrames();
 
-    while (source_->read(frame)) {
+    while (!stop_requested_ && source_->read(frame)) {
         auto t0 = std::chrono::steady_clock::now();
 
         result.detections.clear();
