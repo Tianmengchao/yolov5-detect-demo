@@ -114,6 +114,7 @@ set(PIPELINE_SOURCES
 if(ENABLE_VIDEO)
     list(APPEND PIPELINE_SOURCES
         src/source/video_file_source.cc
+        src/source/rtsp_source.cc
         src/output/video_file_sink.cc
     )
 endif()
@@ -156,11 +157,19 @@ if(ENABLE_VIDEO)
 endif()
 
 # ============================================================
+# Demo: 阶段三 - RTSP 流实时检测（需要 OpenCV + 网络）
+# ============================================================
+if(ENABLE_VIDEO)
+    add_executable(rtsp_detect src/demo/rtsp_detect.cc)
+    target_link_libraries(rtsp_detect detect_pipeline)
+endif()
+
+# ============================================================
 # 安装规则
 # ============================================================
 set(INSTALL_TARGETS image_detect)
 if(ENABLE_VIDEO)
-    list(APPEND INSTALL_TARGETS video_detect)
+    list(APPEND INSTALL_TARGETS video_detect rtsp_detect)
 endif()
 
 install(TARGETS ${INSTALL_TARGETS} DESTINATION .)
