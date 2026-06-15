@@ -47,16 +47,16 @@ cd "$BUILD_DIR"
     --disable-programs \
     --disable-doc \
     --disable-avdevice \
-    --disable-network \
+    --enable-network \
     --enable-gpl \
     --enable-libx264 \
     --disable-everything \
-    --enable-demuxer=mov,matroska,avi,flv,mpegts,image2 \
-    --enable-muxer=mp4,avi,matroska,image2 \
+    --enable-demuxer=mov,matroska,avi,flv,mpegts,rtsp,rtp,sdp,image2 \
+    --enable-muxer=mp4,avi,matroska,image2,rtsp,rtp \
     --enable-decoder=h264,hevc,mpeg4,mjpeg,vp8,vp9,aac,mp3 \
     --enable-encoder=libx264,mjpeg,mpeg4,png \
     --enable-parser=h264,hevc,mpeg4video,mjpeg,aac \
-    --enable-protocol=file \
+    --enable-protocol=file,tcp,udp,rtp \
     --enable-bsf=h264_mp4toannexb,hevc_mp4toannexb \
     --enable-pic \
     --extra-cflags="-fPIC -I${X264_DIR}/include" \
