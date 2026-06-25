@@ -1,4 +1,5 @@
 #include "core/pipeline.h"
+#include "core/async_pipeline.h"
 #include "source/video_file_source.h"
 #include "detector/yolov5_detector.h"
 #include "preprocessor/rga_preprocessor.h"
@@ -10,9 +11,11 @@
 
 int main(int argc, char** argv) {
     if (argc < 3) {
-        printf("Usage: %s <model_path> <video_path> [output_path] [--rga]\n", argv[0]);
+        printf("Usage: %s <model_path> <video_path> [output_path] [--rga] [--async] [--trace]\n", argv[0]);
         printf("\nOptions:\n");
         printf("  --rga    Use RGA hardware accelerated preprocessing\n");
+        printf("  --async  Use async multi-threaded pipeline\n");
+        printf("  --trace  Generate trace.json for Chrome Trace viewer\n");
         return -1;
     }
 
@@ -20,10 +23,16 @@ int main(int argc, char** argv) {
     const char* video_path = argv[2];
     const char* output_path = "out_track.mp4";
     bool use_rga = false;
+    bool use_async = false;
+    bool use_trace = false;
 
     for (int i = 3; i < argc; i++) {
         if (std::strcmp(argv[i], "--rga") == 0) {
             use_rga = true;
+        } else if (std::strcmp(argv[i], "--async") == 0) {
+            use_async = true;
+        } else if (std::strcmp(argv[i], "--trace") == 0) {
+            use_trace = true;
         } else {
             output_path = argv[i];
         }
@@ -46,11 +55,21 @@ int main(int argc, char** argv) {
     config.min_hits = 3;
     tracker->init(config);
 
+    if (use_async) {
+        printf("Pipeline: async multi-threaded\n");
+        AsyncPipeline pipeline;
+        pipeline.setSource(std::make_unique<VideoFileSource>(video_path));
+        pipeline.setDetector(std::move(detector));
+        pipeline.setTracker(std::move(tracker));
+        pipeline.addSink(std::make_unique<VideoFileSink>(output_path));
+        pipeline.setTraceEnabled(use_trace);
+        return pipeline.run();
+    }
+
     Pipeline pipeline;
     pipeline.setSource(std::make_unique<VideoFileSource>(video_path));
     pipeline.setDetector(std::move(detector));
     pipeline.setTracker(std::move(tracker));
     pipeline.addSink(std::make_unique<VideoFileSink>(output_path));
-
     return pipeline.run();
 }
