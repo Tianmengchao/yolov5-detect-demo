@@ -9,4 +9,7 @@ public:
     virtual bool write(const Frame& frame, const DetectionResult& result) = 0;
     virtual bool write(const Frame& frame, const TrackingResult& result) { (void)frame; (void)result; return false; }
     virtual void release() = 0;
+
+    virtual double lastDrawMs() const { return 0.0; }
+    virtual double lastEncodeMs() const { return 0.0; }
 };

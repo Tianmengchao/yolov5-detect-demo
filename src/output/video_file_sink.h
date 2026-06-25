@@ -15,6 +15,9 @@ public:
     bool write(const Frame& frame, const TrackingResult& result) override;
     void release() override;
 
+    double lastDrawMs() const override { return last_draw_ms_; }
+    double lastEncodeMs() const override { return last_encode_ms_; }
+
 private:
     void drawDetections(cv::Mat& bgr_frame, const DetectionResult& result);
     void drawTracks(cv::Mat& bgr_frame, const TrackingResult& result);
@@ -23,4 +26,6 @@ private:
     std::string output_path_;
     cv::VideoWriter writer_;
     cv::Mat bgr_frame_;
+    double last_draw_ms_ = 0.0;
+    double last_encode_ms_ = 0.0;
 };

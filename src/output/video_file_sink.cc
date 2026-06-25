@@ -1,6 +1,7 @@
 #include "output/video_file_sink.h"
 #include <spdlog/spdlog.h>
 #include <opencv2/imgproc.hpp>
+#include <chrono>
 
 VideoFileSink::VideoFileSink(const std::string& output_path) : output_path_(output_path) {}
 
@@ -30,12 +31,20 @@ bool VideoFileSink::open(int width, int height, int fps) {
 bool VideoFileSink::write(const Frame& frame, const DetectionResult& result) {
     if (!writer_.isOpened()) return false;
 
+    auto t0 = std::chrono::steady_clock::now();
+
     cv::Mat rgb(frame.height, frame.width, CV_8UC3, frame.data);
     cv::cvtColor(rgb, bgr_frame_, cv::COLOR_RGB2BGR);
-
     drawDetections(bgr_frame_, result);
 
+    auto t1 = std::chrono::steady_clock::now();
+
     writer_.write(bgr_frame_);
+
+    auto t2 = std::chrono::steady_clock::now();
+
+    last_draw_ms_ = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    last_encode_ms_ = std::chrono::duration<double, std::milli>(t2 - t1).count();
     return true;
 }
 
@@ -58,12 +67,20 @@ void VideoFileSink::drawDetections(cv::Mat& bgr_frame, const DetectionResult& re
 bool VideoFileSink::write(const Frame& frame, const TrackingResult& result) {
     if (!writer_.isOpened()) return false;
 
+    auto t0 = std::chrono::steady_clock::now();
+
     cv::Mat rgb(frame.height, frame.width, CV_8UC3, frame.data);
     cv::cvtColor(rgb, bgr_frame_, cv::COLOR_RGB2BGR);
-
     drawTracks(bgr_frame_, result);
 
+    auto t1 = std::chrono::steady_clock::now();
+
     writer_.write(bgr_frame_);
+
+    auto t2 = std::chrono::steady_clock::now();
+
+    last_draw_ms_ = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    last_encode_ms_ = std::chrono::duration<double, std::milli>(t2 - t1).count();
     return true;
 }
 
