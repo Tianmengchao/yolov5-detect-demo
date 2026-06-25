@@ -1,6 +1,7 @@
 #include "core/pipeline.h"
 #include "source/rtsp_source.h"
 #include "detector/yolov5_detector.h"
+#include "preprocessor/rga_preprocessor.h"
 #include "tracker/byte_tracker.h"
 #include "output/video_file_sink.h"
 #include <cstdio>
@@ -18,10 +19,11 @@ static void signalHandler(int /*sig*/) {
 
 int main(int argc, char** argv) {
     if (argc < 3) {
-        printf("Usage: %s <model_path> <rtsp_url> [output_path] [--track]\n", argv[0]);
-        printf("Example: %s model/yolov5.rknn rtsp://admin:pass@192.168.1.100:554/stream1 out.mp4 --track\n", argv[0]);
+        printf("Usage: %s <model_path> <rtsp_url> [output_path] [--track] [--rga]\n", argv[0]);
+        printf("Example: %s model/yolov5.rknn rtsp://admin:pass@192.168.1.100:554/stream1 out.mp4 --track --rga\n", argv[0]);
         printf("\nOptions:\n");
         printf("  --track    Enable object tracking (ByteTrack)\n");
+        printf("  --rga      Use RGA hardware accelerated preprocessing\n");
         printf("\nPress Ctrl+C to stop recording.\n");
         return -1;
     }
@@ -30,16 +32,23 @@ int main(int argc, char** argv) {
     const char* rtsp_url = argv[2];
     const char* output_path = "out.mp4";
     bool enable_track = false;
+    bool use_rga = false;
 
     for (int i = 3; i < argc; i++) {
         if (std::strcmp(argv[i], "--track") == 0) {
             enable_track = true;
+        } else if (std::strcmp(argv[i], "--rga") == 0) {
+            use_rga = true;
         } else {
             output_path = argv[i];
         }
     }
 
     auto detector = std::make_unique<YoloV5Detector>();
+    if (use_rga) {
+        detector->setPreprocessor(std::make_unique<RgaPreprocessor>());
+        printf("Preprocessing: RGA hardware accelerated\n");
+    }
     if (!detector->init(model_path)) {
         printf("Failed to init detector\n");
         return -1;
