@@ -108,6 +108,8 @@ set(PIPELINE_SOURCES
     src/core/pipeline.cc
     src/source/image_source.cc
     src/detector/yolov5_detector.cc
+    src/preprocessor/cpu_preprocessor.cc
+    src/preprocessor/rga_preprocessor.cc
     src/tracker/kalman_filter.cc
     src/tracker/hungarian.cc
     src/tracker/byte_tracker.cc
@@ -128,6 +130,7 @@ target_include_directories(detect_pipeline PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/utils
     ${LIBRKNNRT_INCLUDES}
+    ${LIBRGA_INCLUDES}
     ${SPDLOG_INCLUDES}
 )
 
@@ -136,6 +139,7 @@ target_link_libraries(detect_pipeline
     fileutils
     imagedrawing
     ${LIBRKNNRT}
+    ${LIBRGA}
     Threads::Threads
     dl
 )

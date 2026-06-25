@@ -1,9 +1,11 @@
 #pragma once
 
 #include "core/detector.h"
+#include "core/preprocessor.h"
 #include "rknn_api.h"
 #include <vector>
 #include <string>
+#include <memory>
 
 class YoloV5Detector : public Detector {
 public:
@@ -14,6 +16,8 @@ public:
     bool detect(const Frame& frame, DetectionResult& result) override;
     void release() override;
 
+    void setPreprocessor(std::unique_ptr<Preprocessor> preprocessor);
+
 private:
     static constexpr int kClassNum = 80;
     static constexpr int kPropBoxSize = 5 + kClassNum;
@@ -22,14 +26,7 @@ private:
     static constexpr int kMaxDetections = 128;
     static constexpr int kAnchorNum = 3;
 
-    struct LetterBox {
-        int x_pad = 0;
-        int y_pad = 0;
-        float scale = 1.0f;
-    };
-
     bool initLabels(const std::string& label_path);
-    void letterboxPreprocess(const Frame& frame, std::vector<uint8_t>& dst, LetterBox& lb);
     void postprocess(rknn_output* outputs, const LetterBox& lb, DetectionResult& result);
 
     int processI8(int8_t* input, const int* anchor, int grid_h, int grid_w,
@@ -41,6 +38,9 @@ private:
 
     void nms(int valid_count, std::vector<float>& boxes, std::vector<int>& class_ids,
              std::vector<int>& order, int filter_id, float threshold);
+
+    std::unique_ptr<Preprocessor> preprocessor_;
+    std::vector<uint8_t> preprocess_buf_;
 
     rknn_context ctx_ = 0;
     rknn_input_output_num io_num_ = {};

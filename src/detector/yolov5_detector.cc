@@ -1,4 +1,5 @@
 #include "detector/yolov5_detector.h"
+#include "preprocessor/cpu_preprocessor.h"
 
 #include <spdlog/spdlog.h>
 #include <chrono>
@@ -84,8 +85,22 @@ bool YoloV5Detector::init(const std::string& model_path) {
 
     initLabels("./model/coco_80_labels_list.txt");
 
+    // 默认使用 CPU 预处理，可通过 setPreprocessor 替换
+    if (!preprocessor_) {
+        preprocessor_ = std::make_unique<CpuPreprocessor>();
+    }
+    preprocessor_->init(model_width_, model_height_, model_channel_);
+    preprocess_buf_.resize(model_width_ * model_height_ * model_channel_);
+
     initialized_ = true;
     return true;
+}
+
+void YoloV5Detector::setPreprocessor(std::unique_ptr<Preprocessor> preprocessor) {
+    preprocessor_ = std::move(preprocessor);
+    if (initialized_) {
+        preprocessor_->init(model_width_, model_height_, model_channel_);
+    }
 }
 
 bool YoloV5Detector::initLabels(const std::string& label_path) {
@@ -103,39 +118,6 @@ bool YoloV5Detector::initLabels(const std::string& label_path) {
     return true;
 }
 
-void YoloV5Detector::letterboxPreprocess(const Frame& frame, std::vector<uint8_t>& dst, LetterBox& lb) {
-    int src_w = frame.width;
-    int src_h = frame.height;
-    int dst_w = model_width_;
-    int dst_h = model_height_;
-
-    float scale = std::min(static_cast<float>(dst_w) / src_w,
-                           static_cast<float>(dst_h) / src_h);
-    int new_w = static_cast<int>(src_w * scale);
-    int new_h = static_cast<int>(src_h * scale);
-    int x_pad = (dst_w - new_w) / 2;
-    int y_pad = (dst_h - new_h) / 2;
-
-    lb.scale = scale;
-    lb.x_pad = x_pad;
-    lb.y_pad = y_pad;
-
-    dst.resize(dst_w * dst_h * 3);
-    std::fill(dst.begin(), dst.end(), 114);
-
-    const uint8_t* src_data = frame.data;
-    for (int dy = 0; dy < new_h; dy++) {
-        int sy = dy * src_h / new_h;
-        for (int dx = 0; dx < new_w; dx++) {
-            int sx = dx * src_w / new_w;
-            int dst_idx = ((dy + y_pad) * dst_w + (dx + x_pad)) * 3;
-            int src_idx = (sy * src_w + sx) * 3;
-            dst[dst_idx + 0] = src_data[src_idx + 0];
-            dst[dst_idx + 1] = src_data[src_idx + 1];
-            dst[dst_idx + 2] = src_data[src_idx + 2];
-        }
-    }
-}
 
 bool YoloV5Detector::detect(const Frame& frame, DetectionResult& result) {
     if (!initialized_) return false;
@@ -144,9 +126,8 @@ bool YoloV5Detector::detect(const Frame& frame, DetectionResult& result) {
 
     auto t0 = std::chrono::steady_clock::now();
 
-    std::vector<uint8_t> preprocessed;
     LetterBox lb;
-    letterboxPreprocess(frame, preprocessed, lb);
+    preprocessor_->process(frame, preprocess_buf_.data(), lb);
 
     rknn_input inputs[1];
     memset(inputs, 0, sizeof(inputs));
@@ -154,7 +135,7 @@ bool YoloV5Detector::detect(const Frame& frame, DetectionResult& result) {
     inputs[0].type = RKNN_TENSOR_UINT8;
     inputs[0].fmt = RKNN_TENSOR_NHWC;
     inputs[0].size = model_width_ * model_height_ * model_channel_;
-    inputs[0].buf = preprocessed.data();
+    inputs[0].buf = preprocess_buf_.data();
 
     int ret = rknn_inputs_set(ctx_, io_num_.n_input, inputs);
     if (ret < 0) {
