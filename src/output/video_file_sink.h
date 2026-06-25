@@ -12,10 +12,13 @@ public:
 
     bool open(int width, int height, int fps) override;
     bool write(const Frame& frame, const DetectionResult& result) override;
+    bool write(const Frame& frame, const TrackingResult& result) override;
     void release() override;
 
 private:
     void drawDetections(cv::Mat& bgr_frame, const DetectionResult& result);
+    void drawTracks(cv::Mat& bgr_frame, const TrackingResult& result);
+    static cv::Scalar idToColor(int id);
 
     std::string output_path_;
     cv::VideoWriter writer_;

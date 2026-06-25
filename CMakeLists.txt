@@ -108,6 +108,9 @@ set(PIPELINE_SOURCES
     src/core/pipeline.cc
     src/source/image_source.cc
     src/detector/yolov5_detector.cc
+    src/tracker/kalman_filter.cc
+    src/tracker/hungarian.cc
+    src/tracker/byte_tracker.cc
     src/output/image_file_sink.cc
 )
 
@@ -165,11 +168,19 @@ if(ENABLE_VIDEO)
 endif()
 
 # ============================================================
+# Demo: 阶段四 - 视频检测 + 目标跟踪（需要 OpenCV）
+# ============================================================
+if(ENABLE_VIDEO)
+    add_executable(tracking_detect src/demo/tracking_detect.cc)
+    target_link_libraries(tracking_detect detect_pipeline)
+endif()
+
+# ============================================================
 # 安装规则
 # ============================================================
 set(INSTALL_TARGETS image_detect)
 if(ENABLE_VIDEO)
-    list(APPEND INSTALL_TARGETS video_detect rtsp_detect)
+    list(APPEND INSTALL_TARGETS video_detect rtsp_detect tracking_detect)
 endif()
 
 install(TARGETS ${INSTALL_TARGETS} DESTINATION .)
