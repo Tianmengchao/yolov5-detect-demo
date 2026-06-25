@@ -1,9 +1,11 @@
 #include "core/pipeline.h"
 #include "source/rtsp_source.h"
 #include "detector/yolov5_detector.h"
+#include "tracker/byte_tracker.h"
 #include "output/video_file_sink.h"
 #include <cstdio>
 #include <csignal>
+#include <cstring>
 #include <memory>
 
 static Pipeline* g_pipeline = nullptr;
@@ -16,15 +18,26 @@ static void signalHandler(int /*sig*/) {
 
 int main(int argc, char** argv) {
     if (argc < 3) {
-        printf("Usage: %s <model_path> <rtsp_url> [output_path]\n", argv[0]);
-        printf("Example: %s model/yolov5.rknn rtsp://admin:pass@192.168.1.100:554/stream1 out.mp4\n", argv[0]);
+        printf("Usage: %s <model_path> <rtsp_url> [output_path] [--track]\n", argv[0]);
+        printf("Example: %s model/yolov5.rknn rtsp://admin:pass@192.168.1.100:554/stream1 out.mp4 --track\n", argv[0]);
+        printf("\nOptions:\n");
+        printf("  --track    Enable object tracking (ByteTrack)\n");
         printf("\nPress Ctrl+C to stop recording.\n");
         return -1;
     }
 
     const char* model_path = argv[1];
     const char* rtsp_url = argv[2];
-    const char* output_path = (argc > 3) ? argv[3] : "out.mp4";
+    const char* output_path = "out.mp4";
+    bool enable_track = false;
+
+    for (int i = 3; i < argc; i++) {
+        if (std::strcmp(argv[i], "--track") == 0) {
+            enable_track = true;
+        } else {
+            output_path = argv[i];
+        }
+    }
 
     auto detector = std::make_unique<YoloV5Detector>();
     if (!detector->init(model_path)) {
@@ -40,6 +53,18 @@ int main(int argc, char** argv) {
 
     pipeline.setSource(std::make_unique<RtspSource>(rtsp_url));
     pipeline.setDetector(std::move(detector));
+
+    if (enable_track) {
+        auto tracker = std::make_unique<ByteTracker>();
+        TrackerConfig config;
+        config.max_iou_distance = 0.7f;
+        config.max_age = 30;
+        config.min_hits = 3;
+        tracker->init(config);
+        pipeline.setTracker(std::move(tracker));
+        printf("Object tracking enabled (ByteTrack)\n");
+    }
+
     pipeline.addSink(std::make_unique<VideoFileSink>(output_path));
 
     int ret = pipeline.run();
