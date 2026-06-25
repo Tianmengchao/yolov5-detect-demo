@@ -185,10 +185,15 @@
 **目标**：测量完整 pipeline（检测 + 跟踪）各环节耗时，找出瓶颈
 
 **关键知识点**：
-- 计时埋点：预处理 / 推理 / 后处理 / 跟踪 / 绘制 各多少 ms
+- 手动计时埋点（std::chrono）：预处理 / NPU 推理 / 后处理 / 跟踪 / 渲染 各多少 ms
 - `rknn_query(RKNN_QUERY_PERF_DETAIL)` 获取 NPU 层级耗时
 - 帧率瓶颈在 CPU 预处理还是 NPU 推理？跟踪耗时占比如何？
 - 内存带宽：大图反复 malloc/free vs 预分配复用
+
+**为什么本阶段用手动埋点而非 Profiling 框架**：
+- 当前 pipeline 是线性的（5 个环节串行），手动计时完全够用
+- Profiling 框架（Tracy / Chrome Trace）的价值在于可视化复杂调用链和多线程时序
+- 阶段七引入多线程后才有足够的复杂度需要可视化工具
 
 **验证标准**：
 - 能输出清晰的各环节耗时报告
@@ -222,6 +227,7 @@
 - `std::thread` + `std::mutex` + `std::condition_variable`
 - 推理与采集并行：NPU 推理第 N 帧时，CPU 同时在预处理第 N+1 帧
 - 跟踪必须串行（依赖帧序），但可以和下一帧的预处理并行
+- **Profiling 框架（Chrome Trace JSON）**：多线程时序可视化，分析线程间阻塞/等待/并行度
 
 **流水线结构**：
 ```
@@ -230,10 +236,17 @@
   Ring Buffer   Ring Buffer   Ring Buffer   Ring Buffer           输出
 ```
 
+**Profiling 集成**：
+- 输出 Chrome Trace 格式 JSON（`chrome://tracing` 可视化）
+- 每个线程的每次处理记录为一个 span（起止时间 + 线程 ID）
+- 可直观看到：哪个线程是瓶颈、线程间等待有多长、流水线气泡在哪里
+- 可选进阶：Tracy Profiler 实时连接（需主机端 GUI + 网络）
+
 **验证标准**：
 - 端到端帧率相比阶段六有提升
 - 各线程负载均衡（无某一级长期阻塞）
 - 跟踪 ID 连续性不受多线程影响
+- 能生成 Chrome Trace JSON，浏览器中看到清晰的多线程时间线
 
 ---
 
