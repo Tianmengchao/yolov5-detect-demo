@@ -35,6 +35,9 @@ struct Detection {
 struct DetectionResult {
     std::vector<Detection> detections;
     double inference_time_ms = 0.0;
+    double preprocess_ms = 0.0;
+    double npu_run_ms = 0.0;
+    double postprocess_ms = 0.0;
 };
 
 struct TrackedObject {

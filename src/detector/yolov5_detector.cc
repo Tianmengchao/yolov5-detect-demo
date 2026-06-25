@@ -1,6 +1,7 @@
 #include "detector/yolov5_detector.h"
 
 #include <spdlog/spdlog.h>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -141,6 +142,8 @@ bool YoloV5Detector::detect(const Frame& frame, DetectionResult& result) {
 
     result.detections.clear();
 
+    auto t0 = std::chrono::steady_clock::now();
+
     std::vector<uint8_t> preprocessed;
     LetterBox lb;
     letterboxPreprocess(frame, preprocessed, lb);
@@ -159,6 +162,8 @@ bool YoloV5Detector::detect(const Frame& frame, DetectionResult& result) {
         return false;
     }
 
+    auto t1 = std::chrono::steady_clock::now();
+
     ret = rknn_run(ctx_, nullptr);
     if (ret < 0) {
         spdlog::error("YoloV5Detector: rknn_run failed, ret={}", ret);
@@ -176,9 +181,17 @@ bool YoloV5Detector::detect(const Frame& frame, DetectionResult& result) {
         return false;
     }
 
+    auto t2 = std::chrono::steady_clock::now();
+
     postprocess(outputs.data(), lb, result);
 
     rknn_outputs_release(ctx_, io_num_.n_output, outputs.data());
+
+    auto t3 = std::chrono::steady_clock::now();
+
+    result.preprocess_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    result.npu_run_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
+    result.postprocess_ms = std::chrono::duration<double, std::milli>(t3 - t2).count();
 
     spdlog::debug("YoloV5Detector: detected {} objects", result.detections.size());
     return true;
