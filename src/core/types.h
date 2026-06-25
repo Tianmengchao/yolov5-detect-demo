@@ -36,3 +36,16 @@ struct DetectionResult {
     std::vector<Detection> detections;
     double inference_time_ms = 0.0;
 };
+
+struct TrackedObject {
+    BBox box;
+    float confidence;
+    int class_id;
+    std::string label;
+    int track_id;
+    int frames_since_seen = 0;
+};
+
+struct TrackingResult {
+    std::vector<TrackedObject> tracks;
+};

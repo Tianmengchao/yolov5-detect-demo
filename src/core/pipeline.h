@@ -2,6 +2,7 @@
 
 #include "core/frame_source.h"
 #include "core/detector.h"
+#include "core/tracker.h"
 #include "core/output_sink.h"
 #include <memory>
 #include <vector>
@@ -10,6 +11,7 @@ class Pipeline {
 public:
     void setSource(std::unique_ptr<FrameSource> source);
     void setDetector(std::unique_ptr<Detector> detector);
+    void setTracker(std::unique_ptr<Tracker> tracker);
     void addSink(std::unique_ptr<OutputSink> sink);
 
     int run();
@@ -21,6 +23,7 @@ private:
 
     std::unique_ptr<FrameSource> source_;
     std::unique_ptr<Detector> detector_;
+    std::unique_ptr<Tracker> tracker_;
     std::vector<std::unique_ptr<OutputSink>> sinks_;
 
     int total_frames_ = 0;

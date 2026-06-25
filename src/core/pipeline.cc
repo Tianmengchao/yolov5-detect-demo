@@ -10,6 +10,10 @@ void Pipeline::setDetector(std::unique_ptr<Detector> detector) {
     detector_ = std::move(detector);
 }
 
+void Pipeline::setTracker(std::unique_ptr<Tracker> tracker) {
+    tracker_ = std::move(tracker);
+}
+
 void Pipeline::addSink(std::unique_ptr<OutputSink> sink) {
     sinks_.push_back(std::move(sink));
 }
@@ -39,6 +43,7 @@ int Pipeline::run() {
 
     Frame frame;
     DetectionResult result;
+    TrackingResult tracking;
     int total_expected = source_->totalFrames();
 
     while (!stop_requested_ && source_->read(frame)) {
@@ -48,6 +53,10 @@ int Pipeline::run() {
         result.inference_time_ms = 0.0;
         detector_->detect(frame, result);
 
+        if (tracker_) {
+            tracking = tracker_->update(result);
+        }
+
         auto t1 = std::chrono::steady_clock::now();
         double elapsed_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
         result.inference_time_ms = elapsed_ms;
@@ -55,7 +64,11 @@ int Pipeline::run() {
         total_frames_++;
 
         for (auto& sink : sinks_) {
-            sink->write(frame, result);
+            if (tracker_) {
+                sink->write(frame, tracking);
+            } else {
+                sink->write(frame, result);
+            }
         }
 
         if (total_frames_ % 30 == 0) {
