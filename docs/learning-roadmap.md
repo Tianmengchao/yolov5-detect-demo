@@ -250,7 +250,57 @@
 
 ---
 
-## 阶段八：MIPI 摄像头与硬件编解码
+## 阶段八：DMA Buffer 零拷贝全链路
+
+**目标**：用 DMA buffer（dma_buf fd）贯通解码→预处理→推理全链路，消除 CPU 内存拷贝
+
+**为什么需要零拷贝**：
+- 阶段六的 RGA 仍使用 `wrapbuffer_virtualaddr`，每帧触发 page table walk + cache flush/invalidate
+- `rknn_inputs_set` 内部会把用户空间 buffer 拷贝到 NPU 可访问内存
+- 1920×1080 RGB 一帧约 6MB，每帧 2-3 次无谓拷贝消耗 3-5ms
+- 边缘设备上，哪怕压缩 1ms 都有意义（10 FPS → 10.1 FPS 看似微小，但在多路并发时差距倍增）
+
+**核心思想**：内存从分配起就是所有硬件单元可直接访问的（physically contiguous / IOMMU mapped）
+
+**关键知识点**：
+- Linux DMA-BUF 子系统：`/dev/dma_heap/system` 分配、fd 传递、跨设备共享
+- MPP（Media Process Platform）硬件解码：替代 FFmpeg 软解，输出直接是 dma_buf fd
+- RGA fd 模式：`wrapbuffer_fd()` 替代 `wrapbuffer_virtualaddr()`，无需 cache 操作
+- RKNN 零拷贝输入：`rknn_create_mem_from_fd()` 直接让 NPU 读取 dma_buf
+- CPU 访问 DMA buffer：`mmap` + `DMA_BUF_IOCTL_SYNC`（仅在需要绘制时）
+- 内存池设计：预分配固定数量 dma_buf，循环复用避免反复 alloc/free
+
+**数据流对比**：
+```
+当前方案（每帧 3 次拷贝）：
+FFmpeg软解 → malloc buf → [cache flush] → RGA(virtualaddr) → malloc buf → [copy] → RKNN
+
+零拷贝方案（0 次拷贝）：
+MPP硬解 → dma_fd → RGA(fd→fd) → dma_fd → RKNN(fd, zero-copy) → 推理结果
+```
+
+**实现步骤**：
+1. 引入 MPP 解码器替代 FFmpeg 软解，获得 dma_buf fd 输出
+2. DMA buffer 内存池：预分配 N 个 buffer，生命周期管理
+3. RgaPreprocessor 升级：`wrapbuffer_fd` 路径
+4. RKNN 零拷贝推理：`rknn_create_mem_from_fd` + `rknn_set_io_mem`
+5. OutputSink 适配：绘制时 mmap + sync，编码时直接传 fd 给 MPP 编码器
+
+**复杂度评估**：
+- 代码量：约 500-800 行新增
+- 强依赖 Rockchip 平台（MPP/RGA/RKNN 三者协同）
+- 调试难度高：出错时无法直接 print 像素值，需要显式 sync 后 mmap 查看
+- 收益：预处理从 ~9ms 可压到 3-4ms，加上推理输入零拷贝，总帧时间再降 5-8ms
+
+**验证标准**：
+- 全链路无 CPU 内存拷贝（可通过 `perf` 观察 cache miss 下降验证）
+- 预处理耗时对比阶段六进一步下降
+- 输出检测结果与 virtualaddr 方案一致
+- 长时间运行无内存泄漏（dma_buf fd 正确关闭）
+
+---
+
+## 阶段九：MIPI 摄像头与硬件编解码
 
 **目标**：接入 MIPI CSI 摄像头，使用 MPP 硬件编解码
 
@@ -259,14 +309,16 @@
 - ISP（Image Signal Processor）：RAW → YUV 的硬件处理
 - Rockchip MPP（Media Process Platform）：硬件编解码 H.264/H.265
 - V4L2 subdev 架构：sensor → ISP → 输出多路流
+- 与阶段八的衔接：ISP 输出 dma_buf → RGA → RKNN，全链路零拷贝
 
 **验证标准**：
 - MIPI 摄像头出图正常
 - 使用 MPP 编码器将检测结果编码为 H.264 视频流
+- 全链路走 DMA buffer，CPU 仅处理检测结果坐标
 
 ---
 
-## 阶段九：系统集成与工程化
+## 阶段十：系统集成与工程化
 
 **目标**：形成可部署的完整"检测 + 跟踪"应用
 
@@ -288,6 +340,7 @@
 | [ByteTrack 论文](https://arxiv.org/abs/2110.06864) | 跟踪算法原理 |
 | [ByteTrack C++ 实现](https://github.com/ifzhang/ByteTrack/tree/main/deploy) | 参考实现 |
 | RGA 文档 (librga/docs/) | RGA 硬件加速 API |
+| Linux DMA-BUF 文档 (kernel.org/doc/html/latest/driver-api/dma-buf.html) | 零拷贝内存共享机制 |
 | Rockchip MPP 开发指南 | 硬件编解码 |
 | V4L2 API 文档 | 摄像头接入底层原理 |
 
@@ -298,12 +351,13 @@
 | 阶段 | 预计耗时 | 前置条件 |
 |------|----------|----------|
 | 一：图片检测 | ✅ 已完成 | — |
-| 二：视频逐帧 | 1-2 天 | OpenCV 交叉编译就绪 |
-| 三：RTSP 流 | 1-2 天 | 可用的 RTSP 流源 |
+| 二：视频逐帧 | ✅ 已完成 | OpenCV 交叉编译就绪 |
+| 三：RTSP 流 | ✅ 已完成 | 可用的 RTSP 流源 |
 | 三-B：USB 摄像头 | 1 天 | ⏸ 待硬件就绪 |
-| 四：目标跟踪 | 2-3 天 | 阶段二或三完成（连续帧输入） |
-| 五：性能分析 | 半天 | 阶段四完成（完整 pipeline） |
-| 六：RGA 加速 | 1-2 天 | 理解 DMA Buffer |
+| 四：目标跟踪 | ✅ 已完成 | 阶段二或三完成（连续帧输入） |
+| 五：性能分析 | ✅ 已完成 | 阶段四完成（完整 pipeline） |
+| 六：RGA 加速 | ✅ 已完成 | librga im2d API |
 | 七：多线程 Pipeline | 2-3 天 | 多线程基础 |
-| 八：MIPI + MPP | 3-5 天 | MIPI 摄像头硬件 + ISP 配置 |
-| 九：系统集成 | 按需 | 以上任意组合 |
+| 八：DMA 零拷贝 | 3-5 天 | MPP 解码 + DMA-BUF 子系统 |
+| 九：MIPI + MPP | 3-5 天 | MIPI 摄像头硬件 + ISP 配置 |
+| 十：系统集成 | 按需 | 以上任意组合 |
