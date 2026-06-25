@@ -27,6 +27,13 @@ private:
     std::vector<std::unique_ptr<OutputSink>> sinks_;
 
     int total_frames_ = 0;
-    double total_inference_ms_ = 0.0;
+    double total_source_ms_ = 0.0;
+    double total_preprocess_ms_ = 0.0;
+    double total_npu_ms_ = 0.0;
+    double total_postprocess_ms_ = 0.0;
+    double total_tracking_ms_ = 0.0;
+    double total_draw_ms_ = 0.0;
+    double total_encode_ms_ = 0.0;
+    double total_frame_ms_ = 0.0;
     bool stop_requested_ = false;
 };
