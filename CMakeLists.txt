@@ -106,6 +106,8 @@ target_link_libraries(imageutils ${LIBRGA} ${LIBJPEG})
 # ============================================================
 set(PIPELINE_SOURCES
     src/core/pipeline.cc
+    src/core/async_pipeline.cc
+    src/core/trace.cc
     src/source/image_source.cc
     src/detector/yolov5_detector.cc
     src/preprocessor/cpu_preprocessor.cc
