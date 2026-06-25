@@ -332,11 +332,16 @@ int main(int argc, char** argv) {
 ./build.sh
 
 # 部署到板子
-scp build/tracking_detect root@<board>:/data/
+scp build/tracking_detect build/rtsp_detect root@<board>:/data/
 
-# 运行
+# 视频文件 + 跟踪
 ./tracking_detect model/yolov5.rknn input.mp4 out_track.mp4
+
+# RTSP 流 + 跟踪（加 --track 参数启用）
+./rtsp_detect model/yolov5.rknn rtsp://admin:pass@192.168.1.100:554/stream1 out.mp4 --track
 ```
+
+`rtsp_detect` 的 `--track` 参数是可选的——不加则保持纯检测模式（阶段三行为），加上后启用 ByteTracker。
 
 输出视频中每个目标框带有固定颜色和 `#ID` 标签，同一目标跨帧 ID 保持不变。
 
