@@ -156,7 +156,8 @@ void AsyncPipeline::trackLoop() {
 
         if (tracker_) {
             TraceSpan span("track", TID_TRACK);
-            tracker_->update(id.detections);
+            td.tracking = tracker_->update(id.detections);
+            td.has_tracking = true;
         }
 
         td.frame_data = std::move(id.frame_data);
@@ -174,7 +175,11 @@ void AsyncPipeline::encodeLoop() {
         {
             TraceSpan span("encode", TID_ENCODE);
             for (auto& sink : sinks_) {
-                sink->write(td.frame_data.frame, td.detections);
+                if (td.has_tracking) {
+                    sink->write(td.frame_data.frame, td.tracking);
+                } else {
+                    sink->write(td.frame_data.frame, td.detections);
+                }
             }
         }
         count++;

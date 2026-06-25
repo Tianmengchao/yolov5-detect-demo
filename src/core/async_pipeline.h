@@ -26,6 +26,8 @@ struct InferData {
 struct TrackedData {
     FrameData frame_data;
     DetectionResult detections;
+    TrackingResult tracking;
+    bool has_tracking = false;
 };
 
 class AsyncPipeline {
